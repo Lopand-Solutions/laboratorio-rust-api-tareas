@@ -1,0 +1,4 @@
+# Compilación
+target/
+# La URL de tu base local y cualquier secreto: nunca al repositorio.
+.env

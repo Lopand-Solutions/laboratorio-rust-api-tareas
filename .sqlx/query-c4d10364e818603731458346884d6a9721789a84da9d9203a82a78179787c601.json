@@ -1,0 +1,66 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, titulo, hecha, prioridad FROM tareas\n         WHERE $1::bool IS NULL OR hecha = $1\n         ORDER BY prioridad DESC, id\n         LIMIT $2 OFFSET $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "tareas",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "titulo",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "tareas",
+            "name": "titulo"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "hecha",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "tareas",
+            "name": "hecha"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "prioridad",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "tareas",
+            "name": "prioridad"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "c4d10364e818603731458346884d6a9721789a84da9d9203a82a78179787c601"
+}
