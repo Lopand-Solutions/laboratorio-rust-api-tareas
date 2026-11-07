@@ -45,90 +45,35 @@ pub struct Filtro {
 // ---------- Validación: funciones puras, se prueban sin base de datos ----------
 
 pub fn validar_titulo(titulo: &str) -> Result<String, ApiError> {
-    let titulo = titulo.trim();
-    if titulo.is_empty() {
-        return Err(ApiError::Invalida("el título no puede ir vacío".into()));
-    }
-    if titulo.chars().count() > TITULO_MAXIMO {
-        return Err(ApiError::Invalida(format!(
-            "el título no puede pasar de {TITULO_MAXIMO} caracteres"
-        )));
-    }
-    Ok(titulo.to_string())
+    todo!("recorta el título; vacío o de más de 200 caracteres es ApiError::Invalida")
 }
 
 pub fn validar_prioridad(prioridad: i16) -> Result<i16, ApiError> {
-    if (1..=3).contains(&prioridad) {
-        Ok(prioridad)
-    } else {
-        Err(ApiError::Invalida("la prioridad va de 1 a 3".into()))
-    }
+    todo!("la prioridad va de 1 a 3; otra es ApiError::Invalida")
 }
 
 // ---------- Consultas: una función por operación, sin nada de HTTP ----------
 
 pub async fn insertar(db: &PgPool, titulo: &str, prioridad: i16) -> sqlx::Result<Tarea> {
-    sqlx::query_as!(
-        Tarea,
-        "INSERT INTO tareas (titulo, prioridad) VALUES ($1, $2)
-         RETURNING id, titulo, hecha, prioridad",
-        titulo,
-        prioridad
-    )
-    .fetch_one(db)
-    .await
+    todo!("INSERT … RETURNING con query_as!")
 }
 
 pub async fn buscar(db: &PgPool, id: i64) -> sqlx::Result<Option<Tarea>> {
-    sqlx::query_as!(
-        Tarea,
-        "SELECT id, titulo, hecha, prioridad FROM tareas WHERE id = $1",
-        id
-    )
-    .fetch_optional(db)
-    .await
+    todo!("SELECT por id con fetch_optional")
 }
 
 /// Primero las de prioridad alta; dentro de la misma prioridad, las más viejas primero.
 pub async fn pagina(db: &PgPool, hecha: Option<bool>, pagina: i64) -> sqlx::Result<Vec<Tarea>> {
-    sqlx::query_as!(
-        Tarea,
-        "SELECT id, titulo, hecha, prioridad FROM tareas
-         WHERE $1::bool IS NULL OR hecha = $1
-         ORDER BY prioridad DESC, id
-         LIMIT $2 OFFSET $3",
-        hecha,
-        POR_PAGINA,
-        (pagina - 1) * POR_PAGINA
-    )
-    .fetch_all(db)
-    .await
+    todo!("filtro opcional por hecha, ORDER BY prioridad DESC, id, y LIMIT/OFFSET de POR_PAGINA")
 }
 
 /// Solo cambia los campos que llegan: COALESCE deja el valor actual si el nuevo es NULL.
 pub async fn cambiar(db: &PgPool, id: i64, c: &Cambios) -> sqlx::Result<Option<Tarea>> {
-    sqlx::query_as!(
-        Tarea,
-        "UPDATE tareas SET
-             titulo = COALESCE($2, titulo),
-             hecha = COALESCE($3, hecha),
-             prioridad = COALESCE($4, prioridad)
-         WHERE id = $1
-         RETURNING id, titulo, hecha, prioridad",
-        id,
-        c.titulo,
-        c.hecha,
-        c.prioridad
-    )
-    .fetch_optional(db)
-    .await
+    todo!("UPDATE con COALESCE para dejar lo que no llega")
 }
 
 pub async fn eliminar(db: &PgPool, id: i64) -> sqlx::Result<bool> {
-    let r = sqlx::query!("DELETE FROM tareas WHERE id = $1", id)
-        .execute(db)
-        .await?;
-    Ok(r.rows_affected() == 1)
+    todo!("DELETE y true si borró una fila")
 }
 
 // ---------- Handlers: leen la petición, validan y llaman a las consultas ----------
@@ -137,33 +82,21 @@ pub async fn listar(
     State(db): State<PgPool>,
     filtro: Result<Query<Filtro>, QueryRejection>,
 ) -> Result<Json<Vec<Tarea>>, ApiError> {
-    let Query(filtro) = filtro?;
-    let numero = filtro.pagina.unwrap_or(1);
-    if numero < 1 {
-        return Err(ApiError::Invalida("la página empieza en 1".into()));
-    }
-    Ok(Json(pagina(&db, filtro.hecha, numero).await?))
+    todo!("lee el filtro, rechaza página < 1 y llama a pagina()")
 }
 
 pub async fn crear(
     State(db): State<PgPool>,
     cuerpo: Result<Json<NuevaTarea>, JsonRejection>,
 ) -> Result<(StatusCode, Json<Tarea>), ApiError> {
-    let Json(nueva) = cuerpo?;
-    let titulo = validar_titulo(&nueva.titulo)?;
-    let prioridad = validar_prioridad(nueva.prioridad.unwrap_or(2))?;
-    let tarea = insertar(&db, &titulo, prioridad).await?;
-    Ok((StatusCode::CREATED, Json(tarea)))
+    todo!("valida título y prioridad (2 si no llega), inserta y responde 201")
 }
 
 pub async fn obtener(
     State(db): State<PgPool>,
     Path(id): Path<i64>,
 ) -> Result<Json<Tarea>, ApiError> {
-    buscar(&db, id)
-        .await?
-        .map(Json)
-        .ok_or(ApiError::NoEncontrada(id))
+    todo!("buscar() o 404")
 }
 
 pub async fn actualizar(
@@ -171,25 +104,11 @@ pub async fn actualizar(
     Path(id): Path<i64>,
     cuerpo: Result<Json<Cambios>, JsonRejection>,
 ) -> Result<Json<Tarea>, ApiError> {
-    let Json(mut cambios) = cuerpo?;
-    if let Some(t) = &cambios.titulo {
-        cambios.titulo = Some(validar_titulo(t)?);
-    }
-    if let Some(p) = cambios.prioridad {
-        validar_prioridad(p)?;
-    }
-    cambiar(&db, id, &cambios)
-        .await?
-        .map(Json)
-        .ok_or(ApiError::NoEncontrada(id))
+    todo!("valida lo que llegue y llama a cambiar(), o 404")
 }
 
 pub async fn borrar(State(db): State<PgPool>, Path(id): Path<i64>) -> Result<StatusCode, ApiError> {
-    if eliminar(&db, id).await? {
-        Ok(StatusCode::NO_CONTENT)
-    } else {
-        Err(ApiError::NoEncontrada(id))
-    }
+    todo!("eliminar() y 204, o 404")
 }
 
 #[cfg(test)]
